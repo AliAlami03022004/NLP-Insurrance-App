@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+.hf_cache/
+models/hf_cache/
+models/hf_cache_generative/
+
+data/processed/clean_reviews.csv
+data/processed/clean_reviews_phase3.csv
+
+outputs/

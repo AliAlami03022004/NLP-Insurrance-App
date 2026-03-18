@@ -1,0 +1,91 @@
+{
+  "themes": [
+    "Pricing",
+    "Coverage",
+    "Enrollment",
+    "Customer Service",
+    "Claims Processing",
+    "Cancellation",
+    "Other"
+  ],
+  "weights": {
+    "prototype": 0.45,
+    "keyword": 0.35,
+    "topic": 0.2
+  },
+  "topic_to_theme": {
+    "0": "Claims Processing",
+    "1": "Customer Service",
+    "2": "Customer Service",
+    "3": "Pricing",
+    "4": "Customer Service",
+    "5": "Enrollment",
+    "6": "Pricing",
+    "7": "Customer Service",
+    "8": "Pricing",
+    "9": "Claims Processing"
+  },
+  "text_column_used": "text_for_deep_learning",
+  "topic_mapping_table": [
+    {
+      "topic_id": 0,
+      "mapped_theme": "Claims Processing",
+      "keyword_overlap": 1,
+      "top_terms": "loading, walking, bikers, reactive, amv, order, problems, problem, supplier, traveled, matmut, display"
+    },
+    {
+      "topic_id": 1,
+      "mapped_theme": "Customer Service",
+      "keyword_overlap": 1,
+      "top_terms": "service, customer, quality, satisfied, responsive, listening, attentive, deplorable, telephone, satisfactory, bad, incompetent"
+    },
+    {
+      "topic_id": 2,
+      "mapped_theme": "Customer Service",
+      "keyword_overlap": 3,
+      "top_terms": "contract, mutual, phone, months, file, time, email, answer, flee, sent, documents, waiting"
+    },
+    {
+      "topic_id": 3,
+      "mapped_theme": "Pricing",
+      "keyword_overlap": 0,
+      "top_terms": "insurance, direct, recommend, car, olivier, highly, really, happy, home, company, advise, auto"
+    },
+    {
+      "topic_id": 4,
+      "mapped_theme": "Customer Service",
+      "keyword_overlap": 5,
+      "top_terms": "good, value, money, listening, advice, welcome, telephone, day, reception, contact, advisor, responsiveness"
+    },
+    {
+      "topic_id": 5,
+      "mapped_theme": "Enrollment",
+      "keyword_overlap": 2,
+      "top_terms": "simple, fast, easy, practical, efficient, quick, clear, site, recommend, subscription, use, online"
+    },
+    {
+      "topic_id": 6,
+      "mapped_theme": "Pricing",
+      "keyword_overlap": 3,
+      "top_terms": "price, correct, attractive, level, guarantees, interesting, compared, suits, high, quote, expensive, quality"
+    },
+    {
+      "topic_id": 7,
+      "mapped_theme": "Customer Service",
+      "keyword_overlap": 3,
+      "top_terms": "satisfied, thank, services, speed, recommend, cordially, offered, hope, service, moment, listening, advisor"
+    },
+    {
+      "topic_id": 8,
+      "mapped_theme": "Pricing",
+      "keyword_overlap": 0,
+      "top_terms": "prices, suit, attractive, correct, competitive, services, offered, interesting, guarantees, compared, affordable, satisfied"
+    },
+    {
+      "topic_id": 9,
+      "mapped_theme": "Claims Processing",
+      "keyword_overlap": 4,
+      "top_terms": "years, vehicle, year, car, accident, home, insured, responsible, euros, increase, claim, insurer"
+    }
+  ]
+}

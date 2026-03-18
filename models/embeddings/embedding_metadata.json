@@ -1,0 +1,5 @@
+{
+  "embedding_backend": "sentence_transformer",
+  "embedding_dim": 384,
+  "num_reviews": 34435
+}
