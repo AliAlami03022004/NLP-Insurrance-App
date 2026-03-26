@@ -23,8 +23,8 @@ from backend.services import (
     get_model_performance_tables,
     get_processed_reviews,
     get_project_metadata,
-    get_report_text,
     get_shap_lite_examples,
+    get_top_confusions,
     predict_review,
     search_reviews,
 )
@@ -38,6 +38,24 @@ def _dict_to_df(values: dict[str, float], label_col: str, value_col: str) -> pd.
         .sort_values(value_col, ascending=False)
         .reset_index(drop=True)
     )
+
+
+def _format_confusion_sentences(confusion_df: pd.DataFrame, task_name: str) -> list[str]:
+    if confusion_df.empty:
+        return [f"No confusion summary is available for the {task_name} task."]
+
+    label_name = "reviews" if task_name == "stars" else "examples"
+    sentences: list[str] = []
+    for _, row in confusion_df.head(3).iterrows():
+        true_label = row.get("true_label", "")
+        pred_label = row.get("pred_label", "")
+        count = int(row.get("count", 0))
+        if task_name == "stars":
+            sentence = f"{count} {label_name} with a true rating of {true_label} star(s) were predicted as {pred_label} star(s)."
+        else:
+            sentence = f"{count} {label_name} labeled as {true_label} were predicted as {pred_label}."
+        sentences.append(sentence)
+    return sentences
 
 
 def render_prediction_page() -> None:
@@ -119,7 +137,7 @@ def render_analytics_page(df: pd.DataFrame) -> None:
     theme_stats = analytics["theme_stats"]
     insurer_theme_stats = analytics["insurer_theme_stats"]
 
-    insurer_options = sorted(df["assureur"].dropna().astype(str).unique().tolist())
+    insurer_options = ["All"] + sorted(df["assureur"].dropna().astype(str).unique().tolist())
     selected_insurer = st.selectbox("Select an insurer to summarize", insurer_options)
     insurer_summary = get_insurer_summary(selected_insurer)
 
@@ -160,16 +178,22 @@ def render_analytics_page(df: pd.DataFrame) -> None:
     else:
         st.info("No theme analytics are available yet.")
 
-    selected_theme_stats = insurer_theme_stats[insurer_theme_stats["assureur"].astype(str).eq(selected_insurer)].copy()
+    if selected_insurer == "All":
+        selected_theme_stats = theme_stats.copy()
+        selected_theme_title = "All insurers - average stars by theme"
+    else:
+        selected_theme_stats = insurer_theme_stats[insurer_theme_stats["assureur"].astype(str).eq(selected_insurer)].copy()
+        selected_theme_title = f"{selected_insurer} - average stars by theme"
     if not selected_theme_stats.empty:
-        st.markdown("### Selected insurer average stars by theme")
+        section_heading = "### Average stars by theme" if selected_insurer == "All" else "### Selected insurer average stars by theme"
+        st.markdown(section_heading)
         st.plotly_chart(
             px.bar(
                 selected_theme_stats.sort_values("avg_star", ascending=False),
                 x="theme_primary",
                 y="avg_star",
                 color="reviews",
-                title=f"{selected_insurer} - average stars by theme",
+                title=selected_theme_title,
             ),
             use_container_width=True,
         )
@@ -178,26 +202,16 @@ def render_analytics_page(df: pd.DataFrame) -> None:
 def render_rag_page() -> None:
     st.header("RAG and QA")
     question = st.text_area("Question", value="Which is the best insurer overall by stars?", height=120)
-    backend = st.radio("Generative backend", ["hf", "ollama"], horizontal=True)
-    if backend == "hf":
-        model_name = st.selectbox("HF model", ["google/flan-t5-base", "google/flan-t5-small", "google/flan-t5-large"])
-        ollama_url = "http://localhost:11434"
-    else:
-        model_name = st.text_input("Ollama model", value="llama3.1:8b")
-        ollama_url = st.text_input("Ollama URL", value="http://localhost:11434")
+    model_name = st.text_input("Ollama model", value="llama3.1:8b")
+    ollama_url = st.text_input("Ollama URL", value="http://localhost:11434")
 
     if st.button("Run RAG", type="primary"):
         result = ask_question(
             question,
-            generative_backend=backend,
+            generative_backend="ollama",
             generative_model=model_name,
             ollama_base_url=ollama_url,
         )
-
-        st.subheader("Extractive QA")
-        st.markdown(f"**Best answer sentence:** {result['qa_output']['best_answer']}")
-        if not result["qa_output"]["answer_sentences"].empty:
-            st.dataframe(result["qa_output"]["answer_sentences"], use_container_width=True)
 
         st.subheader("Template-grounded RAG")
         st.markdown(result["template_answer"])
@@ -213,6 +227,10 @@ def render_rag_page() -> None:
             st.warning(result["generative_answer"]["error"])
 
         with st.expander("Retrieved review evidence"):
+            if not result["qa_output"]["answer_sentences"].empty:
+                st.markdown("**Top evidence sentences**")
+                st.dataframe(result["qa_output"]["answer_sentences"], use_container_width=True)
+            st.markdown("**Retrieved reviews**")
             st.dataframe(result["qa_output"]["retrieved_reviews"], use_container_width=True)
 
 
@@ -220,6 +238,9 @@ def render_diagnostics_page() -> None:
     st.header("Diagnostics")
     overview = get_dataset_overview()
     metadata = get_project_metadata()
+    model_tables = get_model_performance_tables()
+    stars_confusions = get_top_confusions("stars")
+    sentiment_confusions = get_top_confusions("sentiment")
     insurer_count = overview.get("insurers", overview.get("n_insurers", 0))
     theme_count = overview.get("themes", overview.get("n_themes", 0))
     c1, c2, c3 = st.columns(3)
@@ -227,20 +248,34 @@ def render_diagnostics_page() -> None:
     c2.metric("Insurers", str(insurer_count))
     c3.metric("Themes", str(theme_count))
     st.write("Embedding metadata:", metadata["embedding_metadata"])
+
+    stars_best = model_tables["stars"].iloc[0]
+    sentiment_best = model_tables["sentiment"].iloc[0]
+    st.subheader("Model performance overview")
+    st.markdown(
+        "\n".join(
+            [
+                f"- Stars task: the best model is **{stars_best['model_name']}** with a test macro-F1 of **{stars_best['test_f1_macro']:.3f}**.",
+                f"- Sentiment task: the best model is **{sentiment_best['model_name']}** with a test macro-F1 of **{sentiment_best['test_f1_macro']:.3f}**.",
+            ]
+        )
+    )
+
+    st.subheader("Most frequent confusions")
+    for sentence in _format_confusion_sentences(stars_confusions, "stars"):
+        st.write(f"- {sentence}")
+    for sentence in _format_confusion_sentences(sentiment_confusions, "sentiment"):
+        st.write(f"- {sentence}")
+
     st.subheader("SHAP-lite examples")
     st.dataframe(get_shap_lite_examples("sentiment").head(10), use_container_width=True)
     st.subheader("Anomaly examples")
     st.dataframe(get_anomaly_examples(10), use_container_width=True)
-    report_text = get_report_text("phase5_error_analysis.md")
-    if report_text:
-        st.subheader("Phase 5 report")
-        st.markdown(report_text)
 
 
 def main() -> None:
-    st.set_page_config(page_title="NLP_ProjetV2 Modular Frontend", layout="wide")
-    st.title("NLP_ProjetV2 Modular Frontend")
-    st.caption("UI-only layer calling backend services.")
+    st.set_page_config(page_title="NLP insurer interactive explorer", layout="wide")
+    st.title("NLP insurer interactive explorer")
 
     df = get_processed_reviews()
     page = st.sidebar.radio(

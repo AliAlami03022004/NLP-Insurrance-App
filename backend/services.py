@@ -440,7 +440,7 @@ def get_insurer_analytics(split_filter: str = "All", min_reviews: int = 150) -> 
     }
 
 
-def get_insurer_summary(insurer: str, max_examples: int = 3) -> dict[str, Any]:
+def get_insurer_summary(insurer: str | None, max_examples: int = 3) -> dict[str, Any]:
     """Build a grading-oriented insurer summary from local review evidence."""
     df = get_processed_reviews().copy()
     if "assureur" not in df.columns:
@@ -453,7 +453,13 @@ def get_insurer_summary(insurer: str, max_examples: int = 3) -> dict[str, Any]:
             "avg_star": np.nan,
         }
 
-    subset = df[df["assureur"].astype(str).eq(insurer)].copy()
+    if insurer in {None, "All"}:
+        subset = df.copy()
+        subject_label = "All insurers"
+    else:
+        subset = df[df["assureur"].astype(str).eq(insurer)].copy()
+        subject_label = str(insurer)
+
     if subset.empty:
         return {
             "summary_text": f"No reviews were found for insurer `{insurer}`.",
@@ -499,7 +505,7 @@ def get_insurer_summary(insurer: str, max_examples: int = 3) -> dict[str, Any]:
     negative_share = float(sentiment_counts.get("negative", 0.0))
 
     summary_lines = [
-        f"**{insurer}** is represented by **{review_count:,}** reviews.",
+        f"**{subject_label}** are represented by **{review_count:,}** reviews.",
     ]
     if np.isfinite(avg_star):
         summary_lines.append(f"The average rating is **{avg_star:.2f}/5**.")
@@ -569,6 +575,15 @@ def get_report_text(report_name: str) -> str:
 
 def get_shap_lite_examples(task_name: str) -> pd.DataFrame:
     path = TABLES_DIR / f"phase5_shap_lite_examples_{task_name}.csv"
+    if not path.exists():
+        run_error_analysis(force=False)
+    if not path.exists():
+        return pd.DataFrame()
+    return pd.read_csv(path)
+
+
+def get_top_confusions(task_name: str) -> pd.DataFrame:
+    path = TABLES_DIR / f"phase5_top_confusions_{task_name}.csv"
     if not path.exists():
         run_error_analysis(force=False)
     if not path.exists():

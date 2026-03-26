@@ -1,10 +1,3 @@
-# NLP_ProjetV2 Modular
-
-This folder is now a standalone, student-friendly version of the insurance reviews NLP project.
-
-It does not import `src.*` and it does not call the legacy root `scripts/` files.  
-All implementation code used by the modular app and the modular phase entry points lives inside `NLP_ProjetV2_modular/`.
-
 ## Architecture
 
 ```text
@@ -134,5 +127,5 @@ from backend.services import (
 - `notebooks/01_eda_matplotlib_plots.ipynb`: Matplotlib / Seaborn plotting walkthrough
 - `notebooks/02_model_workflow.ipynb`: model comparison, error analysis, and RAG walkthrough
 
-The notebooks are meant for explanation and teaching.  
+The notebooks are meant for explanation.
 The core reusable logic remains in `.py` files inside `backend/`.
